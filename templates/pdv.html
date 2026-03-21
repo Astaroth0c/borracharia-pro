@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">💳 PDV — Ponto de Venda</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+  <div class="card">
+    <div class="card-header"><span class="card-title">🛒 Nova Venda</span></div>
+    <div style="padding:16px">
+      <div class="form-group"><label class="form-label">Cliente (opcional)</label><input class="form-control" id="cliente_nome" placeholder="Nome do cliente"></div>
+      <div style="font-size:13px;font-weight:600;color:#1a2d5a;margin-bottom:8px">Selecionar Pneus:</div>
+      <div style="max-height:220px;overflow-y:auto;border:1px solid #dde3ec;border-radius:8px">
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <thead><tr style="background:#f7f8fa"><th style="padding:8px">Medida</th><th>Tipo</th><th>Preço</th><th>Qtd</th><th></th></tr></thead>
+          <tbody>
+          {% for p in pneus %}
+          <tr style="border-bottom:1px solid #f0f2f5">
+            <td style="padding:6px 8px"><b>{{ p.medida }}</b><br><small>{{ p.marca or '' }}</small></td>
+            <td>{{ p.tipo }}</td>
+            <td>{{ fmtR(p.preco_venda) }}</td>
+            <td><input type="number" min="1" max="{{ p.qtd|int }}" value="1" id="qtd_{{ p.id }}" style="width:50px;border:1px solid #dde3ec;border-radius:4px;padding:2px 4px;font-size:12px"></td>
+            <td><button class="btn btn-success btn-sm" onclick="addItem({{ p.id }},'{{ p.medida }}',{{ p.preco_venda }})">+</button></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:14px;background:#f7f8fa;border-radius:8px;padding:12px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">🛒 Carrinho:</div>
+        <div id="carrinho" style="min-height:40px;font-size:13px;color:#718096">Nenhum item adicionado</div>
+        <hr style="margin:10px 0;border-color:#dde3ec">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Total R$</label><input class="form-control" id="total_pdv" readonly value="0,00" style="font-weight:700;font-size:16px;color:#1a6fbd"></div>
+          <div class="form-group"><label class="form-label">Desconto R$</label><input class="form-control" type="number" step="0.01" id="desconto_pdv" value="0" oninput="calcTroco()"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Forma de Pagto</label>
+            <select class="form-control" id="forma_pagto">
+              {% for f in ['Dinheiro','PIX','Cartão Débito','Cartão Crédito','Cheque'] %}
+              <option>{{ f }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Valor Recebido R$</label>
+            <input class="form-control" type="number" step="0.01" id="recebido_pdv" value="0" oninput="calcTroco()">
+          </div>
+        </div>
+        <div style="font-size:15px;font-weight:700;color:#1e8c4e;margin-bottom:12px">Troco: R$ <span id="troco_span">0,00</span></div>
+        <button class="btn btn-primary" style="width:100%" onclick="finalizarVenda()">✅ Finalizar Venda</button>
+      </div>
+      <form method="POST" action="/pdv/vender" id="form_venda" style="display:none">
+        <input type="hidden" name="cliente_nome" id="h_cliente">
+        <input type="hidden" name="itens" id="h_itens">
+        <input type="hidden" name="total" id="h_total">
+        <input type="hidden" name="desconto" id="h_desconto">
+        <input type="hidden" name="forma_pagto" id="h_forma">
+        <input type="hidden" name="recebido" id="h_recebido">
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">📊 Vendas de Hoje</span></div>
+    <div class="table-responsive"><table>
+      <thead><tr><th>Hora</th><th>Cliente</th><th>Total</th><th>Pagto</th></tr></thead>
+      <tbody>
+      {% for v in vendas %}
+      <tr>
+        <td>{{ v.criado_em.strftime('%H:%M') }}</td>
+        <td>{{ v.cliente_nome or 'Balcão' }}</td>
+        <td><b>{{ fmtR(v.total) }}</b></td>
+        <td>{{ v.forma_pagto }}</td>
+      </tr>
+      {% else %}<tr><td colspan="4"><div class="empty"><p>Nenhuma venda hoje</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+<script>
+let itens=[], total=0;
+function addItem(id,medida,preco){
+  const qtd=parseInt(document.getElementById('qtd_'+id).value)||1;
+  const exist=itens.find(i=>i.pneu_id===id);
+  if(exist){exist.qtd+=qtd;exist.subtotal=exist.qtd*preco;}
+  else itens.push({pneu_id:id,medida,preco,qtd,subtotal:qtd*preco});
+  renderCarrinho();
+}
+function removeItem(id){itens=itens.filter(i=>i.pneu_id!==id);renderCarrinho();}
+function renderCarrinho(){
+  total=itens.reduce((s,i)=>s+i.subtotal,0);
+  if(!itens.length){document.getElementById('carrinho').innerHTML='Nenhum item';document.getElementById('total_pdv').value='0,00';return;}
+  document.getElementById('carrinho').innerHTML=itens.map(i=>
+    `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f2f5">
+      <span>${i.medida} x${i.qtd}</span>
+      <span><b>R$ ${i.subtotal.toFixed(2).replace('.',',')}</b> <button onclick="removeItem(${i.pneu_id})" style="border:none;background:none;color:#c0392b;cursor:pointer">✕</button></span>
+    </div>`).join('');
+  document.getElementById('total_pdv').value=total.toFixed(2).replace('.',',');
+  calcTroco();
+}
+function calcTroco(){
+  const desc=parseFloat(document.getElementById('desconto_pdv').value)||0;
+  const liq=total-desc;
+  const rec=parseFloat(document.getElementById('recebido_pdv').value)||0;
+  const troco=Math.max(0,rec-liq);
+  document.getElementById('troco_span').textContent=troco.toFixed(2).replace('.',',');
+}
+function finalizarVenda(){
+  if(!itens.length){alert('Adicione ao menos um item!');return;}
+  document.getElementById('h_cliente').value=document.getElementById('cliente_nome').value;
+  document.getElementById('h_itens').value=JSON.stringify(itens);
+  document.getElementById('h_total').value=total.toFixed(2);
+  document.getElementById('h_desconto').value=document.getElementById('desconto_pdv').value;
+  document.getElementById('h_forma').value=document.getElementById('forma_pagto').value;
+  document.getElementById('h_recebido').value=document.getElementById('recebido_pdv').value;
+  document.getElementById('form_venda').submit();
+}
+</script>
+{% endblock %}

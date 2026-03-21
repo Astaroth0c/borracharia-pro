@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">🔄 Empréstimos de Carcaças</div>
+<div class="card">
+  <div class="card-header">
+    <div style="display:flex;gap:8px">
+      <a href="/emprestimos?filtro=abertos" class="btn {{ 'btn-primary' if filtro=='abertos' else 'btn-ghost' }} btn-sm">Em aberto</a>
+      <a href="/emprestimos?filtro=todos" class="btn {{ 'btn-primary' if filtro=='todos' else 'btn-ghost' }} btn-sm">Todos</a>
+    </div>
+  </div>
+  <div class="table-responsive"><table>
+    <thead><tr><th>OS</th><th>Cliente</th><th>Medida</th><th>Saída</th><th>Devolução</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for e in emprestimos %}
+    <tr>
+      <td><a href="/os/editar/{{ e.os_id }}" style="color:#1a6fbd">#{{ e.os_id }}</a></td>
+      <td><b>{{ e.cliente_nome }}</b></td>
+      <td>{{ e.medida }}</td>
+      <td>{{ e.data_saida.strftime('%d/%m/%Y') if e.data_saida else '—' }}</td>
+      <td>{{ e.data_devolucao.strftime('%d/%m/%Y') if e.data_devolucao else '—' }}</td>
+      <td><span class="badge {{ 'badge-em-recauchutagem' if e.status=='emprestado' else 'badge-concluída' }}">{{ e.status }}</span></td>
+    </tr>
+    {% else %}<tr><td colspan="6"><div class="empty"><div class="empty-icon">🔄</div><p>Nenhum empréstimo {{ 'em aberto' if filtro=='abertos' else '' }}</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

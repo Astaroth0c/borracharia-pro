@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>👑 Admin — Borracharia Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#f4f6f9}header{background:#1a2d5a;color:#fff;padding:0 24px;height:52px;display:flex;align-items:center;gap:12px}.container{max-width:1200px;margin:0 auto;padding:20px}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}.kpi{background:#fff;border:1px solid #dde3ec;border-radius:10px;padding:14px}.kpi .val{font-size:26px;font-weight:700;color:#1a2d5a}.kpi .lbl{font-size:11px;color:#718096;text-transform:uppercase}.card{background:#fff;border:1px solid #dde3ec;border-radius:10px;overflow:hidden;margin-bottom:16px}.card-hdr{padding:12px 16px;border-bottom:1px solid #dde3ec;font-size:13px;font-weight:600;color:#1a2d5a}table{width:100%;border-collapse:collapse;font-size:12px}thead th{background:#f7f8fa;padding:9px 12px;text-align:left;border-bottom:1px solid #dde3ec;font-size:11px;color:#718096;text-transform:uppercase}tbody td{padding:9px 12px;border-bottom:1px solid #f0f2f5}tbody tr:hover{background:#fafbfc}.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600}.badge-a{background:#e6f4ec;color:#1e8c4e}.badge-t{background:#e8f1fa;color:#1a6fbd}.badge-e{background:#fdecea;color:#c0392b}.btn{display:inline-block;padding:4px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:none}.btn-g{background:#1e8c4e;color:#fff}.btn-r{background:#c0392b;color:#fff}footer{text-align:center;padding:16px;font-size:11px;color:#aaa}</style>
+</head><body>
+<header><h1 style="font-size:15px;font-weight:700">👑 Admin — Borracharia Pro</h1><span style="font-size:12px;color:#a0b4d0">Orange Tech Solutions</span></header>
+<div class="container">
+{% with msgs=get_flashed_messages(with_categories=true) %}{% for c,m in msgs %}<div style="background:#e6f4ec;border-left:3px solid #1e8c4e;padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px;color:#1e8c4e">{{ m }}</div>{% endfor %}{% endwith %}
+<div class="kpi-grid">
+  <div class="kpi"><div class="val">{{ empresas|length }}</div><div class="lbl">Total Borracharias</div></div>
+  <div class="kpi"><div class="val">{{ empresas|selectattr('plano','eq','ativo')|list|length }}</div><div class="lbl">Planos Ativos</div></div>
+  <div class="kpi"><div class="val" style="font-size:18px">{{ receita_total }}</div><div class="lbl">Receita Total</div></div>
+  <div class="kpi"><div class="val">{{ empresas|selectattr('plano','eq','trial')|list|length }}</div><div class="lbl">Em Trial</div></div>
+</div>
+<div class="card">
+  <div class="card-hdr">🏢 Borracharias Cadastradas</div>
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th>ID</th><th>Nome</th><th>Usuário</th><th>Plano</th><th>Válido até</th><th>Clientes</th><th>OS</th><th>Receita</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for e in empresas %}
+    {% set st=get_empresa_status(e.id) %}
+    <tr>
+      <td><b style="color:#1a6fbd">{{ e.id }}</b></td>
+      <td><b>{{ e.nome }}</b></td>
+      <td>{{ e.usuario }}</td>
+      <td>{% if e.plano=='ativo' %}<span class="badge badge-a">✅ Ativo</span>{% elif 'trial' in st and not st.startswith('exp') %}<span class="badge badge-t">⏱️ Trial</span>{% else %}<span class="badge badge-e">❌ Expirado</span>{% endif %}</td>
+      <td style="font-size:11px">{{ e.plano_valido_ate.strftime('%d/%m/%Y') if e.plano_valido_ate else (e.trial_inicio.strftime('%d/%m %H:%M') if e.trial_inicio else '—') }}</td>
+      <td>{{ e.total_clientes }}</td><td>{{ e.total_os }}</td>
+      <td>{{ fmtR(e.receita) }}</td>
+      <td style="display:flex;gap:5px">
+        <form method="POST" action="/admin/liberar/{{ e.id }}?token={{ token }}"><button class="btn btn-g">✅ Liberar</button></form>
+        <form method="POST" action="/admin/bloquear/{{ e.id }}?token={{ token }}" onsubmit="return confirm('Bloquear?')"><button class="btn btn-r">🚫 Bloquear</button></form>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="9" style="text-align:center;padding:24px;color:#718096">Nenhuma borracharia cadastrada</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+</div>
+<footer>🔩 Borracharia Pro • Criado com ❤️ por Robinho • Orange Tech Solutions</footer>
+</body></html>

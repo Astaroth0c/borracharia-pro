@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ titulo }}</div>
+<div class="card">
+  <form method="POST" style="padding:20px">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nome *</label><input class="form-control" name="nome" required value="{{ cliente.nome if cliente else '' }}"></div>
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-control" name="tipo">
+          {% for t in ['Pessoa Física','Pessoa Jurídica','Produtor Rural'] %}
+          <option value="{{ t }}" {{ 'selected' if cliente and cliente.tipo==t else '' }}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Telefone</label><input class="form-control" name="telefone" value="{{ cliente.telefone if cliente else '' }}"></div>
+      <div class="form-group"><label class="form-label">WhatsApp</label><input class="form-control" name="whatsapp" value="{{ cliente.whatsapp if cliente else '' }}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">CPF/CNPJ</label><input class="form-control" name="cpfcnpj" value="{{ cliente.cpfcnpj if cliente else '' }}"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ cliente.email if cliente else '' }}"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Endereço</label><input class="form-control" name="endereco" value="{{ cliente.endereco if cliente else '' }}"></div>
+      <div class="form-group"><label class="form-label">Cidade</label><input class="form-control" name="cidade" value="{{ cliente.cidade if cliente else '' }}"></div>
+      <div class="form-group"><label class="form-label">UF</label><input class="form-control" name="uf" maxlength="2" value="{{ cliente.uf if cliente else '' }}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Observações</label><textarea class="form-control" name="obs" rows="2">{{ cliente.obs if cliente else '' }}</textarea></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary">💾 Salvar</button>
+      <a href="/clientes" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

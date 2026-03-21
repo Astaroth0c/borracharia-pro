@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">📅 Agenda</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+  <div class="card">
+    <div class="card-header">
+      <form method="GET" style="display:flex;gap:8px;align-items:center;flex:1">
+        <input class="form-control" type="date" name="data" value="{{ data_str }}" style="max-width:160px">
+        <button class="btn btn-ghost btn-sm">Ver dia</button>
+      </form>
+      <a href="/agenda/novo" class="btn btn-primary btn-sm">+ Agendar</a>
+    </div>
+    <div class="table-responsive"><table>
+      <thead><tr><th>Hora</th><th>Cliente</th><th>Serviço</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody>
+      {% for a in agendamentos %}
+      <tr>
+        <td><b>{{ a.data_hora.strftime('%H:%M') }}</b></td>
+        <td>{{ a.cliente_nome }}<br><small style="color:#718096">{{ a.veiculo or '' }}</small></td>
+        <td>{{ a.servico }}</td>
+        <td><span class="badge {{ 'badge-ok' if a.status=='concluído' else 'badge-aberta' }}">{{ a.status }}</span></td>
+        <td style="display:flex;gap:4px">
+          {% if a.status == 'agendado' %}
+          <form method="POST" action="/agenda/concluir/{{ a.id }}"><button class="btn btn-success btn-sm">✅</button></form>
+          {% endif %}
+          <form method="POST" action="/agenda/excluir/{{ a.id }}" onsubmit="return confirm('Excluir?')"><button class="btn btn-danger btn-sm">🗑️</button></form>
+        </td>
+      </tr>
+      {% else %}<tr><td colspan="5"><div class="empty"><p>Nenhum agendamento neste dia</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">📋 Próximos Agendamentos</span></div>
+    <div class="table-responsive"><table>
+      <thead><tr><th>Data/Hora</th><th>Cliente</th><th>Serviço</th></tr></thead>
+      <tbody>
+      {% for a in proximos %}
+      <tr><td>{{ a.data_hora.strftime('%d/%m %H:%M') }}</td><td>{{ a.cliente_nome }}</td><td>{{ a.servico }}</td></tr>
+      {% else %}<tr><td colspan="3"><div class="empty"><p>Nenhum agendamento futuro</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endblock %}

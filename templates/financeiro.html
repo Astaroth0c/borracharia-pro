@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">💰 Financeiro</div>
+<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+  <div class="kpi-card" style="--cor:#1e8c4e"><div class="kpi-icon">⬆️</div><div class="kpi-val" style="font-size:18px">{{ ent }}</div><div class="kpi-lbl">Total Entradas</div></div>
+  <div class="kpi-card" style="--cor:#c0392b"><div class="kpi-icon">⬇️</div><div class="kpi-val" style="font-size:18px">{{ sai }}</div><div class="kpi-lbl">Total Saídas</div></div>
+  <div class="kpi-card" style="--cor:#1a6fbd"><div class="kpi-icon">💰</div><div class="kpi-val" style="font-size:18px">{{ saldo }}</div><div class="kpi-lbl">Saldo</div></div>
+</div>
+<div class="card">
+  <div class="card-header">
+    <form method="GET" style="display:flex;gap:8px;flex:1;flex-wrap:wrap">
+      <input class="form-control" name="q" value="{{ q }}" placeholder="Buscar descrição..." style="max-width:220px">
+      <select class="form-control" name="tipo" style="max-width:160px" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        <option value="Entrada" {{ 'selected' if tipo=='Entrada' else '' }}>Entradas</option>
+        <option value="Saída" {{ 'selected' if tipo=='Saída' else '' }}>Saídas</option>
+      </select>
+      <button class="btn btn-ghost btn-sm">Buscar</button>
+    </form>
+    <a href="/financeiro/novo" class="btn btn-primary btn-sm">+ Lançamento</a>
+  </div>
+  <div class="table-responsive"><table>
+    <thead><tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Pagto</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for l in lancamentos %}
+    <tr>
+      <td>{{ l.data.strftime('%d/%m/%Y') if l.data else '—' }}</td>
+      <td><span class="badge {{ 'badge-ok' if l.tipo=='Entrada' else 'badge-cancelada' }}">{{ l.tipo }}</span></td>
+      <td>{{ l.categoria or '—' }}</td>
+      <td>{{ l.descricao }}</td>
+      <td><b style="color:{{ '#1e8c4e' if l.tipo=='Entrada' else '#c0392b' }}">{{ fmtR(l.valor) }}</b></td>
+      <td>{{ l.forma_pagto or '—' }}</td>
+      <td>
+        <form method="POST" action="/financeiro/excluir/{{ l.id }}" onsubmit="return confirm('Excluir?')">
+          <button class="btn btn-danger btn-sm">🗑️</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="7"><div class="empty"><p>Nenhum lançamento</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

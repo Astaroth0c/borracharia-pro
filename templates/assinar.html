@@ -1,0 +1,53 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🔩 Assinar — Borracharia Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#f4f6f9;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}.card{background:#fff;border:1px solid #dde3ec;border-radius:16px;padding:36px;width:100%;max-width:480px}.logo{text-align:center;margin-bottom:20px}.logo h1{font-size:22px;font-weight:800;color:#1a2d5a}.trial-badge{background:#fef3e6;border:1px solid #f0c080;border-radius:8px;padding:12px;text-align:center;font-size:13px;color:#d4680a;font-weight:600;margin-bottom:18px}.preco{text-align:center;margin-bottom:20px}.preco .valor{font-size:42px;font-weight:800;color:#1a2d5a}.preco .periodo{font-size:13px;color:#718096}.beneficio{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f0f2f5;font-size:13px}.beneficio:last-child{border-bottom:none}.btn-pix{width:100%;background:#1a2d5a;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px}.qr-area{display:none;text-align:center;margin-top:16px}.qr-area.show{display:block}.qr-area img{width:200px;height:200px;border:4px solid #1a2d5a;border-radius:10px;margin:10px auto;display:block}.pix-copia{background:#f7f8fa;border:1px solid #dde3ec;border-radius:6px;padding:8px;font-size:11px;font-family:monospace;word-break:break-all;margin:8px 0;max-height:70px;overflow:auto}.btn-copiar{background:#e6f4ec;color:#1e8c4e;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;width:100%;margin-bottom:6px}.status-pag{text-align:center;font-size:13px;color:#718096}.status-pag.aprovado{color:#1e8c4e;font-weight:700}.spinner{display:inline-block;width:12px;height:12px;border:2px solid #dde3ec;border-top-color:#1a6fbd;border-radius:50%;animation:spin .8s linear infinite;margin-right:5px;vertical-align:middle}@keyframes spin{to{transform:rotate(360deg)}}footer{margin-top:18px;font-size:11px;color:#aaa;text-align:center}</style>
+</head><body>
+<div class="card">
+  <div class="logo"><h1>🔩 Borracharia Pro</h1></div>
+  <div class="trial-badge">⏱️ Período de teste encerrou, {{ empresa_nome }}!<br>Assine para continuar usando.</div>
+  <div class="preco"><div class="valor">R$ 120</div><div class="periodo">por mês</div></div>
+  <div>
+    <div class="beneficio">✅ OS, Estoque, Clientes e Financeiro</div>
+    <div class="beneficio">✅ Módulo exclusivo de Produtor Rural</div>
+    <div class="beneficio">✅ Controle de carcaças emprestadas</div>
+    <div class="beneficio">✅ PDV para venda de pneus</div>
+    <div class="beneficio">✅ Agenda de atendimentos</div>
+    <div class="beneficio">✅ Suporte via WhatsApp — Orange Tech</div>
+  </div>
+  <button class="btn-pix" id="btn-gerar" onclick="gerarPix()">📱 Gerar QR Code PIX</button>
+  <div class="qr-area" id="qr-area">
+    <p style="font-size:12px;color:#718096">Escaneie com o app do banco:</p>
+    <img id="qr-img" src="" alt="QR Code">
+    <div class="pix-copia" id="pix-codigo"></div>
+    <button class="btn-copiar" onclick="copiarPix()">📋 Copiar código PIX</button>
+    <div class="status-pag" id="status-pag"><span class="spinner"></span> Aguardando pagamento...</div>
+  </div>
+</div>
+<footer>🔩 Borracharia Pro • Criado com ❤️ por Robinho • Orange Tech Solutions</footer>
+<script>
+let paymentId=null, checkInterval=null;
+async function gerarPix(){
+  const btn=document.getElementById('btn-gerar');
+  btn.disabled=true; btn.textContent='⏳ Gerando...';
+  try{
+    const r=await fetch('/gerar_pix',{method:'POST'});
+    const d=await r.json();
+    if(d.erro){alert('Erro: '+d.erro);btn.disabled=false;btn.textContent='📱 Gerar QR Code PIX';return;}
+    paymentId=d.payment_id;
+    document.getElementById('qr-img').src='data:image/png;base64,'+d.qr_code_base64;
+    document.getElementById('pix-codigo').textContent=d.qr_code;
+    document.getElementById('qr-area').classList.add('show');
+    btn.textContent='✅ QR Code gerado!';
+    checkInterval=setInterval(verificar,5000);
+  }catch(e){alert('Erro. Tente novamente.');btn.disabled=false;btn.textContent='📱 Gerar QR Code PIX';}
+}
+async function verificar(){
+  if(!paymentId) return;
+  const r=await fetch('/verificar_pagamento/'+paymentId);
+  const d=await r.json();
+  if(d.status==='aprovado'){clearInterval(checkInterval);const s=document.getElementById('status-pag');s.className='status-pag aprovado';s.innerHTML='🎉 Pago! Redirecionando...';setTimeout(()=>{window.location.href='/painel'},2000);}
+}
+function copiarPix(){navigator.clipboard.writeText(document.getElementById('pix-codigo').textContent).then(()=>{const b=document.querySelector('.btn-copiar');b.textContent='✅ Copiado!';setTimeout(()=>b.textContent='📋 Copiar código PIX',2000);});}
+</script>
+</body></html>

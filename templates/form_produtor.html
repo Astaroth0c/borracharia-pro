@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ titulo }}</div>
+<div class="card">
+  <form method="POST" style="padding:20px">
+    <div class="form-group"><label class="form-label">Cliente *</label>
+      <select class="form-control" name="cliente_id" required>
+        <option value="">Selecione o cliente...</option>
+        {% for c in cli_list %}
+        <option value="{{ c.id }}" {{ 'selected' if produtor and produtor.cliente_id==c.id else '' }}>{{ c.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nome da Fazenda</label><input class="form-control" name="nome_fazenda" value="{{ produtor.nome_fazenda if produtor else '' }}"></div>
+      <div class="form-group"><label class="form-label">Tipo de Máquina</label>
+        <select class="form-control" name="tipo_maquina">
+          {% for m in ['Trator','Colheitadeira','Plantadeira','Pulverizador','Caminhão','Outro'] %}
+          <option value="{{ m }}" {{ 'selected' if produtor and produtor.tipo_maquina==m else '' }}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Medida do Pneu Padrão</label><input class="form-control" name="medida_pneu" placeholder="Ex: 18.4-30 ou 650/75R32" value="{{ produtor.medida_pneu if produtor else '' }}"></div>
+      <div class="form-group"><label class="form-label">Marca do Pneu</label><input class="form-control" name="marca_pneu" value="{{ produtor.marca_pneu if produtor else '' }}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Forma de Pagamento Preferida</label>
+      <select class="form-control" name="forma_pagto">
+        {% for f in ['Dinheiro','PIX','Boleto','Cheque','A prazo'] %}
+        <option value="{{ f }}" {{ 'selected' if produtor and produtor.forma_pagto==f else '' }}>{{ f }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Observações</label><textarea class="form-control" name="obs" rows="2">{{ produtor.obs if produtor else '' }}</textarea></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary">💾 Salvar</button>
+      <a href="/produtores" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

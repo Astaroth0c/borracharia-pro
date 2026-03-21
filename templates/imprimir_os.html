@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>OS #{{ os.id }}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:13px;padding:20px;color:#000}
+.header{text-align:center;margin-bottom:16px;border-bottom:2px solid #000;padding-bottom:12px}
+.header h1{font-size:20px;font-weight:800}.header p{font-size:12px;color:#555;margin-top:4px}
+.os-num{font-size:18px;font-weight:700;color:#1a2d5a}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.section{border:1px solid #ccc;border-radius:6px;padding:10px}
+.section h3{font-size:11px;text-transform:uppercase;color:#555;margin-bottom:8px;font-weight:700}
+.row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f0f0f0;font-size:12px}
+.row:last-child{border-bottom:none}
+.row .label{color:#555}.row .value{font-weight:600}
+.servicos{border:1px solid #ccc;border-radius:6px;padding:10px;margin:10px 0}
+.total-box{background:#1a2d5a;color:#fff;border-radius:8px;padding:12px;text-align:right;margin:12px 0}
+.total-box .valor{font-size:22px;font-weight:800}
+.assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+.ass-box{border-top:1px solid #000;padding-top:8px;text-align:center;font-size:11px;color:#555}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#e8f1fa;color:#1a2d5a}
+footer{text-align:center;font-size:10px;color:#aaa;margin-top:16px;border-top:1px solid #eee;padding-top:8px}
+@media print{.no-print{display:none}body{padding:10px}}
+</style>
+</head><body>
+<div class="no-print" style="margin-bottom:16px;display:flex;gap:10px">
+  <button onclick="window.print()" style="background:#1a2d5a;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:700">🖨️ Imprimir / Salvar PDF</button>
+  <a href="/os" style="color:#1a6fbd;text-decoration:none;padding:8px 16px;border:1px solid #dde3ec;border-radius:6px">← Voltar</a>
+</div>
+<div class="header">
+  <h1>🔩 {{ empresa.nome if empresa else 'Borracharia Pro' }}</h1>
+  <p>Ordem de Serviço</p>
+  <div class="os-num">OS #{{ os.id }} <span class="status-badge">{{ os.status }}</span></div>
+</div>
+<div class="grid">
+  <div class="section">
+    <h3>👤 Cliente</h3>
+    <div class="row"><span class="label">Nome</span><span class="value">{{ os.cliente_nome }}</span></div>
+    <div class="row"><span class="label">Placa/Veículo</span><span class="value">{{ os.veiculo_placa or '—' }}</span></div>
+    <div class="row"><span class="label">Modelo</span><span class="value">{{ os.veiculo_modelo or '—' }}</span></div>
+  </div>
+  <div class="section">
+    <h3>📋 OS</h3>
+    <div class="row"><span class="label">Data Abertura</span><span class="value">{{ os.data_abert.strftime('%d/%m/%Y') if os.data_abert else '—' }}</span></div>
+    <div class="row"><span class="label">Tipo</span><span class="value">{{ os.tipo_os }}</span></div>
+    <div class="row"><span class="label">Técnico</span><span class="value">{{ os.tecnico or '—' }}</span></div>
+  </div>
+</div>
+<div class="grid">
+  <div class="section">
+    <h3>🔵 Pneu</h3>
+    <div class="row"><span class="label">Medida</span><span class="value">{{ os.pneu_medida or '—' }}</span></div>
+    <div class="row"><span class="label">Marca</span><span class="value">{{ os.pneu_marca or '—' }}</span></div>
+    <div class="row"><span class="label">Condição</span><span class="value">{{ os.pneu_condicao or '—' }}</span></div>
+  </div>
+  <div class="section">
+    <h3>🔧 Montagem</h3>
+    <div class="row"><span class="label">Tipo cobrança</span><span class="value">{{ os.tipo_montagem }}</span></div>
+    <div class="row"><span class="label">Valor montagem</span><span class="value">{{ fmtR(os.valor_montagem) }}</span></div>
+    {% if os.tipo_os == 'Recauchutagem Rural' %}
+    <div class="row"><span class="label">Recauchutadora</span><span class="value">{{ os.recauchutadora or '—' }}</span></div>
+    <div class="row"><span class="label">Prev. retorno</span><span class="value">{{ os.data_prev_retorno.strftime('%d/%m/%Y') if os.data_prev_retorno else '—' }}</span></div>
+    {% endif %}
+  </div>
+</div>
+<div class="servicos">
+  <h3 style="font-size:11px;text-transform:uppercase;color:#555;font-weight:700;margin-bottom:6px">🛠️ Serviços Realizados</h3>
+  <p style="font-size:13px">{{ os.servicos or 'Não informado' }}</p>
+</div>
+{% if os.obs %}
+<div class="servicos"><h3 style="font-size:11px;text-transform:uppercase;color:#555;font-weight:700;margin-bottom:6px">📝 Observações</h3><p>{{ os.obs }}</p></div>
+{% endif %}
+<div class="total-box">
+  <div style="font-size:12px;margin-bottom:4px">Desconto: {{ fmtR(os.desconto) }} | Pagto: {{ os.forma_pagto }} | {{ os.pago }}</div>
+  <div>TOTAL <span class="valor">{{ fmtR(os.total) }}</span></div>
+</div>
+<div class="assinaturas">
+  <div class="ass-box">Assinatura do Cliente<br><br>{{ os.cliente_nome }}</div>
+  <div class="ass-box">Responsável<br><br>{{ os.tecnico or empresa.nome if empresa else 'Borracharia' }}</div>
+</div>
+<footer>🔩 Borracharia Pro • Criado com ❤️ por Robinho • Orange Tech Solutions</footer>
+</body></html>

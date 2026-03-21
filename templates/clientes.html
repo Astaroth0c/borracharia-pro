@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">👥 Clientes</div>
+<div class="card">
+  <div class="card-header">
+    <form method="GET" style="display:flex;gap:8px;flex:1">
+      <input class="form-control" name="q" value="{{ q }}" placeholder="Buscar por nome ou telefone..." style="max-width:300px">
+      <button class="btn btn-ghost btn-sm" type="submit">Buscar</button>
+      {% if q %}<a href="/clientes" class="btn btn-ghost btn-sm">Limpar</a>{% endif %}
+    </form>
+    <a href="/clientes/novo" class="btn btn-primary btn-sm">+ Novo Cliente</a>
+  </div>
+  <div class="table-responsive"><table>
+    <thead><tr><th>Nome</th><th>Telefone</th><th>WhatsApp</th><th>Cidade</th><th>Tipo</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for c in clientes %}
+    <tr>
+      <td><b>{{ c.nome }}</b></td>
+      <td>{{ c.telefone or '—' }}</td>
+      <td>{{ c.whatsapp or '—' }}</td>
+      <td>{{ c.cidade or '—' }}</td>
+      <td>{{ c.tipo }}</td>
+      <td style="display:flex;gap:6px">
+        <a href="/clientes/editar/{{ c.id }}" class="btn btn-ghost btn-sm">✏️</a>
+        <form method="POST" action="/clientes/excluir/{{ c.id }}" onsubmit="return confirm('Excluir {{ c.nome }}?')">
+          <button class="btn btn-danger btn-sm">🗑️</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="6"><div class="empty"><div class="empty-icon">👥</div><p>Nenhum cliente cadastrado</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

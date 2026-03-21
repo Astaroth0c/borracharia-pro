@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">📦 Estoque de Pneus e Carcaças</div>
+<div class="card">
+  <div class="card-header">
+    <form method="GET" style="display:flex;gap:8px;flex:1">
+      <input class="form-control" name="q" value="{{ q }}" placeholder="Buscar medida ou marca..." style="max-width:280px">
+      <button class="btn btn-ghost btn-sm">Buscar</button>
+    </form>
+    <div style="display:flex;gap:8px">
+      <a href="/estoque/pneu/novo" class="btn btn-primary btn-sm">+ Novo Pneu</a>
+      <a href="/estoque/carcaca/nova" class="btn btn-ghost btn-sm">+ Carcaça</a>
+    </div>
+  </div>
+  <div style="padding:14px 16px;font-size:13px;font-weight:600;color:#1a2d5a;border-bottom:1px solid #dde3ec">🔵 Estoque de Pneus</div>
+  <div class="table-responsive"><table>
+    <thead><tr><th>Tipo</th><th>Medida</th><th>Marca</th><th>Qtd</th><th>Custo</th><th>Venda</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for p in pneus %}
+    {% set st = pneu_status(p.qtd, p.qtd_min) %}
+    <tr>
+      <td><span class="badge {{ 'badge-ok' if p.tipo=='Novo' else 'badge-aberta' }}">{{ p.tipo }}</span></td>
+      <td><b>{{ p.medida }}</b></td>
+      <td>{{ p.marca or '—' }}</td>
+      <td><b>{{ p.qtd|int }}</b></td>
+      <td>{{ fmtR(p.custo) }}</td>
+      <td>{{ fmtR(p.preco_venda) }}</td>
+      <td><span class="badge badge-{{ st|lower|replace(' ','-') }}">{{ st }}</span></td>
+      <td style="display:flex;gap:6px">
+        <a href="/estoque/pneu/editar/{{ p.id }}" class="btn btn-ghost btn-sm">✏️</a>
+        <form method="POST" action="/estoque/pneu/excluir/{{ p.id }}" onsubmit="return confirm('Excluir?')">
+          <button class="btn btn-danger btn-sm">🗑️</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="8"><div class="empty"><p>Nenhum pneu no estoque</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+<div class="card">
+  <div style="padding:14px 16px;font-size:13px;font-weight:600;color:#1a2d5a;border-bottom:1px solid #dde3ec">🔄 Carcaças</div>
+  <div class="table-responsive"><table>
+    <thead><tr><th>Medida</th><th>Marca</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for c in carcacas %}
+    <tr>
+      <td><b>{{ c.medida }}</b></td>
+      <td>{{ c.marca or '—' }}</td>
+      <td><span class="badge {{ 'badge-ok' if c.status=='disponivel' else 'badge-em-recauchutagem' }}">{{ c.status_label }}</span></td>
+      <td>
+        <form method="POST" action="/estoque/carcaca/excluir/{{ c.id }}" onsubmit="return confirm('Excluir carcaça?')">
+          <button class="btn btn-danger btn-sm" {{ 'disabled' if c.status=='emprestada' else '' }}>🗑️</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="4"><div class="empty"><p>Nenhuma carcaça cadastrada</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

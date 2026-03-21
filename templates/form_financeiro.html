@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ titulo }}</div>
+<div class="card"><form method="POST" style="padding:20px">
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Tipo *</label>
+      <select class="form-control" name="tipo" required>
+        <option value="Entrada" {{ 'selected' if not lanc or lanc.tipo=='Entrada' else '' }}>Entrada</option>
+        <option value="Saída" {{ 'selected' if lanc and lanc.tipo=='Saída' else '' }}>Saída</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Data</label><input class="form-control" type="date" name="data" value="{{ lanc.data if lanc else '' }}"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Categoria</label>
+      <select class="form-control" name="categoria">
+        {% for c in ['Serviço','Venda PDV','Recauchutagem','Aluguel','Fornecedor','Combustível','Outro'] %}
+        <option value="{{ c }}" {{ 'selected' if lanc and lanc.categoria==c else '' }}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Valor R$ *</label><input class="form-control" type="number" step="0.01" name="valor" required value="{{ lanc.valor if lanc else '' }}"></div>
+  </div>
+  <div class="form-group"><label class="form-label">Descrição *</label><input class="form-control" name="descricao" required value="{{ lanc.descricao if lanc else '' }}"></div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Forma de Pagto</label>
+      <select class="form-control" name="forma_pagto">
+        {% for f in ['Dinheiro','PIX','Cartão','Cheque','Transferência'] %}
+        <option value="{{ f }}" {{ 'selected' if lanc and lanc.forma_pagto==f else '' }}>{{ f }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Pago?</label>
+      <select class="form-control" name="pago">
+        <option value="Sim" {{ 'selected' if not lanc or lanc.pago=='Sim' else '' }}>Sim</option>
+        <option value="Não" {{ 'selected' if lanc and lanc.pago=='Não' else '' }}>Não</option>
+      </select>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px"><button class="btn btn-primary">💾 Salvar</button><a href="/financeiro" class="btn btn-ghost">Cancelar</a></div>
+</form></div>
+{% endblock %}

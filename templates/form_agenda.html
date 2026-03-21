@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ titulo }}</div>
+<div class="card"><form method="POST" style="padding:20px">
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Data *</label><input class="form-control" type="date" name="data" required value="{{ hoje }}"></div>
+    <div class="form-group"><label class="form-label">Hora *</label><input class="form-control" type="time" name="hora" required value="08:00"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Nome do Cliente *</label><input class="form-control" name="cliente_nome" required></div>
+    <div class="form-group"><label class="form-label">Telefone</label><input class="form-control" name="telefone"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Veículo / Placa</label><input class="form-control" name="veiculo"></div>
+    <div class="form-group"><label class="form-label">Serviço</label>
+      <select class="form-control" name="servico">
+        {% for s in ['Troca de pneu','Alinhamento e balanceamento','Conserto de furo','Recauchutagem','Venda de pneu','Outro'] %}
+        <option>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-group"><label class="form-label">Observações</label><textarea class="form-control" name="obs" rows="2"></textarea></div>
+  <div style="display:flex;gap:10px"><button class="btn btn-primary">💾 Agendar</button><a href="/agenda" class="btn btn-ghost">Cancelar</a></div>
+</form></div>
+{% endblock %}

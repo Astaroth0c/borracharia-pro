@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">🌾 Produtores Rurais</div>
+<div class="card">
+  <div class="card-header">
+    <form method="GET" style="display:flex;gap:8px;flex:1">
+      <input class="form-control" name="q" value="{{ q }}" placeholder="Buscar por nome ou fazenda..." style="max-width:300px">
+      <button class="btn btn-ghost btn-sm">Buscar</button>
+    </form>
+    <a href="/produtores/novo" class="btn btn-primary btn-sm">+ Novo Produtor</a>
+  </div>
+  <div class="table-responsive"><table>
+    <thead><tr><th>Nome</th><th>Fazenda</th><th>Máquina</th><th>Medida Padrão</th><th>Pagto</th><th>Empréstimos</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for p in produtores %}
+    <tr>
+      <td><b>{{ p.cliente_nome }}</b><br><small style="color:#718096">{{ p.telefone or '' }}</small></td>
+      <td>{{ p.nome_fazenda or '—' }}</td>
+      <td>{{ p.tipo_maquina or '—' }}</td>
+      <td><b style="color:#1a6fbd">{{ p.medida_pneu or '—' }}</b></td>
+      <td>{{ p.forma_pagto }}</td>
+      <td>{% if p.emp_abertos > 0 %}<span class="badge badge-em-recauchutagem">{{ p.emp_abertos }} aberto(s)</span>{% else %}<span class="badge badge-ok">0</span>{% endif %}</td>
+      <td style="display:flex;gap:6px">
+        <a href="/produtores/editar/{{ p.id }}" class="btn btn-ghost btn-sm">✏️</a>
+        <form method="POST" action="/produtores/excluir/{{ p.id }}" onsubmit="return confirm('Excluir?')">
+          <button class="btn btn-danger btn-sm">🗑️</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="7"><div class="empty"><div class="empty-icon">🌾</div><p>Nenhum produtor rural cadastrado</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

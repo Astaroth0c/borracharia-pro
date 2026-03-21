@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ titulo }}</div>
+<div class="card"><form method="POST" style="padding:20px">
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Tipo</label>
+      <select class="form-control" name="tipo">
+        {% for t in ['Novo','Usado','Recauchutado'] %}
+        <option value="{{ t }}" {{ 'selected' if pneu and pneu.tipo==t else '' }}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Condição</label>
+      <select class="form-control" name="condicao">
+        {% for c in ['Novo','Seminovo','Bom','Regular'] %}
+        <option value="{{ c }}" {{ 'selected' if pneu and pneu.condicao==c else '' }}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Medida *</label><input class="form-control" name="medida" required value="{{ pneu.medida if pneu else '' }}" placeholder="Ex: 175/70 R13 ou 18.4-30"></div>
+    <div class="form-group"><label class="form-label">Marca</label><input class="form-control" name="marca" value="{{ pneu.marca if pneu else '' }}"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Fornecedor</label><input class="form-control" name="fornecedor" value="{{ pneu.fornecedor if pneu else '' }}"></div>
+    <div class="form-group"><label class="form-label">Quantidade</label><input class="form-control" type="number" name="qtd" value="{{ pneu.qtd if pneu else '0' }}" step="1"></div>
+  </div>
+  <div class="form-row-3">
+    <div class="form-group"><label class="form-label">Qtd Mínima</label><input class="form-control" type="number" name="qtd_min" value="{{ pneu.qtd_min if pneu else '1' }}"></div>
+    <div class="form-group"><label class="form-label">Custo R$</label><input class="form-control" type="number" step="0.01" name="custo" value="{{ pneu.custo if pneu else '0' }}"></div>
+    <div class="form-group"><label class="form-label">Preço de Venda R$</label><input class="form-control" type="number" step="0.01" name="preco_venda" value="{{ pneu.preco_venda if pneu else '0' }}"></div>
+  </div>
+  <div class="form-group"><label class="form-label">Observações</label><textarea class="form-control" name="obs" rows="2">{{ pneu.obs if pneu else '' }}</textarea></div>
+  <div style="display:flex;gap:10px"><button class="btn btn-primary">💾 Salvar</button><a href="/estoque" class="btn btn-ghost">Cancelar</a></div>
+</form></div>
+{% endblock %}

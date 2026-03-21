@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ titulo }}</div>
+<div class="card"><form method="POST" style="padding:20px">
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Medida *</label><input class="form-control" name="medida" required value="{{ carcaca.medida if carcaca else '' }}" placeholder="Ex: 175/70 R13"></div>
+    <div class="form-group"><label class="form-label">Marca</label><input class="form-control" name="marca" value="{{ carcaca.marca if carcaca else '' }}"></div>
+  </div>
+  <div class="form-group"><label class="form-label">Observações</label><textarea class="form-control" name="obs" rows="2">{{ carcaca.obs if carcaca else '' }}</textarea></div>
+  <div style="display:flex;gap:10px"><button class="btn btn-primary">💾 Salvar</button><a href="/estoque" class="btn btn-ghost">Cancelar</a></div>
+</form></div>
+{% endblock %}

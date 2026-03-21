@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+{% if trial_min is not none %}
+<div class="status-bar">
+  <span>⏱️ Teste gratuito — <b>{{ trial_min }} minuto{{ 's' if trial_min != 1 else '' }}</b> restante{{ 's' if trial_min != 1 else '' }}</span>
+  <a href="/assinar" class="btn btn-warning btn-sm">💳 Assinar R$ 120/mês</a>
+</div>
+{% endif %}
+<div class="page-title">🏠 Painel — {{ session.empresa_nome }}</div>
+<div class="kpi-grid">
+  <div class="kpi-card" style="--cor:#1a6fbd"><div class="kpi-icon">👥</div><div class="kpi-val">{{ n_cli }}</div><div class="kpi-lbl">Clientes</div></div>
+  <div class="kpi-card" style="--cor:#d4680a"><div class="kpi-icon">📋</div><div class="kpi-val">{{ n_os }}</div><div class="kpi-lbl">OS em Aberto</div></div>
+  <div class="kpi-card" style="--cor:#8e44ad"><div class="kpi-icon">🔄</div><div class="kpi-val">{{ n_emp }}</div><div class="kpi-lbl">Empréstimos</div></div>
+  <div class="kpi-card" style="--cor:#2980b9"><div class="kpi-icon">📅</div><div class="kpi-val">{{ n_agenda }}</div><div class="kpi-lbl">Agenda Hoje</div></div>
+  <div class="kpi-card" style="--cor:#1e8c4e"><div class="kpi-icon">💰</div><div class="kpi-val" style="font-size:16px">{{ hoje }}</div><div class="kpi-lbl">Receita Hoje</div></div>
+  <div class="kpi-card" style="--cor:#c0392b"><div class="kpi-icon">📊</div><div class="kpi-val" style="font-size:16px">{{ mes }}</div><div class="kpi-lbl">Receita do Mês</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+  <div class="card">
+    <div class="card-header"><span class="card-title">📋 OS em Andamento</span><a href="/os/nova" class="btn btn-primary btn-sm">+ Nova OS</a></div>
+    <div class="table-responsive"><table>
+      <thead><tr><th>Nº</th><th>Cliente</th><th>Placa</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for o in ultimas_os %}
+      <tr>
+        <td><a href="/os/editar/{{ o.id }}" style="color:#1a6fbd;font-weight:600">#{{ o.id }}</a></td>
+        <td>{{ o.cliente_nome }}</td>
+        <td>{{ o.veiculo_placa or '—' }}</td>
+        <td><span class="badge badge-{{ o.status|lower|replace(' ','-') }}">{{ o.status }}</span></td>
+      </tr>
+      {% else %}<tr><td colspan="4"><div class="empty"><p>Nenhuma OS em aberto</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div class="card">
+      <div class="card-header"><span class="card-title">🔄 Carcaças Emprestadas</span><a href="/emprestimos" class="btn btn-ghost btn-sm">Ver tudo</a></div>
+      <div class="table-responsive"><table>
+        <thead><tr><th>Cliente</th><th>Medida</th><th>Saída</th></tr></thead>
+        <tbody>
+        {% for e in emprestimos %}
+        <tr><td>{{ e.cliente_nome }}</td><td>{{ e.medida }}</td><td>{{ e.data_saida.strftime('%d/%m') if e.data_saida else '—' }}</td></tr>
+        {% else %}<tr><td colspan="3"><div class="empty"><p>✅ Nenhuma carcaça emprestada</p></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">📅 Próximos Agendamentos</span><a href="/agenda" class="btn btn-ghost btn-sm">Agenda</a></div>
+      <div class="table-responsive"><table>
+        <thead><tr><th>Horário</th><th>Cliente</th><th>Serviço</th></tr></thead>
+        <tbody>
+        {% for a in proximos %}
+        <tr><td>{{ a.data_hora.strftime('%d/%m %H:%M') }}</td><td>{{ a.cliente_nome }}</td><td>{{ a.servico }}</td></tr>
+        {% else %}<tr><td colspan="3"><div class="empty"><p>Nenhum agendamento</p></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🔩 Borracharia Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f4f6f9;color:#1a202c;min-height:100vh}
+nav{background:#1a2d5a;color:#fff;height:52px;display:flex;align-items:center;padding:0 20px;gap:4px;position:sticky;top:0;z-index:100}
+nav .brand{font-size:16px;font-weight:700;margin-right:16px;white-space:nowrap}
+nav a{color:#a0b4d0;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px;font-weight:500;transition:all .15s;white-space:nowrap}
+nav a:hover,nav a.active{background:#ffffff20;color:#fff}
+nav .spacer{flex:1}
+nav .user{font-size:12px;color:#a0b4d0}
+.container{max-width:1300px;margin:0 auto;padding:20px}
+.page-title{font-size:20px;font-weight:700;color:#1a2d5a;margin-bottom:18px}
+.card{background:#fff;border:1px solid #dde3ec;border-radius:10px;overflow:hidden;margin-bottom:18px}
+.card-header{padding:12px 16px;border-bottom:1px solid #dde3ec;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:14px;font-weight:600;color:#1a2d5a}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.kpi-card{background:#fff;border:1px solid #dde3ec;border-radius:10px;padding:14px;border-top:3px solid var(--cor,#1a6fbd)}
+.kpi-icon{font-size:20px;margin-bottom:4px}
+.kpi-val{font-size:26px;font-weight:700;color:#1a2d5a}
+.kpi-lbl{font-size:11px;color:#718096;text-transform:uppercase;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:#f7f8fa;color:#718096;font-size:11px;font-weight:600;text-transform:uppercase;padding:9px 14px;text-align:left;border-bottom:1px solid #dde3ec}
+tbody tr{border-bottom:1px solid #f0f2f5}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#fafbfc}
+tbody td{padding:9px 14px;vertical-align:middle}
+.table-responsive{overflow-x:auto}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:all .15s}
+.btn-primary{background:#1a6fbd;color:#fff}.btn-primary:hover{background:#145fa3}
+.btn-success{background:#1e8c4e;color:#fff}.btn-success:hover{background:#166a3a}
+.btn-danger{background:#c0392b;color:#fff}.btn-danger:hover{background:#a93226}
+.btn-warning{background:#d4680a;color:#fff}.btn-warning:hover{background:#b85a08}
+.btn-ghost{background:#f7f8fa;color:#1a2d5a;border:1px solid #dde3ec}.btn-ghost:hover{background:#edf0f5}
+.btn-sm{padding:4px 10px;font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-aberta{background:#e8f1fa;color:#1a6fbd}
+.badge-carcaça-emprestada{background:#fff3e0;color:#d4680a}
+.badge-em-recauchutagem{background:#fdecea;color:#c0392b}
+.badge-pneu-pronto{background:#e6f4ec;color:#1e8c4e}
+.badge-retorno-agendado{background:#eeedfe;color:#534ab7}
+.badge-concluída{background:#e6f4ec;color:#1e8c4e}
+.badge-cancelada{background:#f7f8fa;color:#718096}
+.badge-ok{background:#e6f4ec;color:#1e8c4e}
+.badge-baixo{background:#faeeda;color:#633806}
+.badge-crítico{background:#fdecea;color:#c0392b}
+.badge-sem-estoque{background:#f7f8fa;color:#718096}
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;font-weight:600;color:#4a5568;margin-bottom:4px;display:block;text-transform:uppercase}
+.form-control{width:100%;border:1px solid #dde3ec;border-radius:7px;padding:8px 12px;font-size:13px;font-family:'Inter',sans-serif;color:#1a202c;background:#fff;transition:border .15s}
+.form-control:focus{outline:none;border-color:#1a6fbd}
+select.form-control{cursor:pointer}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.alert{padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:14px;border-left:3px solid}
+.alert-success{background:#e6f4ec;color:#1e8c4e;border-color:#1e8c4e}
+.alert-info{background:#e8f1fa;color:#1a6fbd;border-color:#1a6fbd}
+.alert-danger{background:#fdecea;color:#c0392b;border-color:#c0392b}
+.empty{text-align:center;padding:32px;color:#718096}
+.empty-icon{font-size:32px;margin-bottom:8px}
+footer{text-align:center;padding:20px;font-size:11px;color:#aaa;margin-top:10px}
+.status-bar{background:#fff3e0;border-left:4px solid #f5a623;border-radius:6px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;font-size:13px}
+@media(max-width:768px){.form-row,.form-row-3{grid-template-columns:1fr}nav a span{display:none}}
+</style>
+</head>
+<body>
+<nav>
+  <span class="brand">🔩 Borracharia Pro</span>
+  <a href="/painel">🏠</a>
+  <a href="/clientes">👥 Clientes</a>
+  <a href="/produtores">🌾 Produtores</a>
+  <a href="/os">📋 OS</a>
+  <a href="/emprestimos">🔄 Empréstimos</a>
+  <a href="/estoque">📦 Estoque</a>
+  <a href="/agenda">📅 Agenda</a>
+  <a href="/pdv">💳 PDV</a>
+  <a href="/financeiro">💰 Financeiro</a>
+  <span class="spacer"></span>
+  <span class="user">{{ session.empresa_nome }}</span>
+  <a href="/logout" style="margin-left:8px">Sair</a>
+</nav>
+<div class="container">
+{% with msgs = get_flashed_messages(with_categories=true) %}
+  {% for cat,msg in msgs %}
+  <div class="alert alert-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+{% block content %}{% endblock %}
+</div>
+<footer>🔩 Borracharia Pro • Criado com ❤️ por Robinho • Orange Tech Solutions</footer>
+</body>
+</html>

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ titulo }}</div>
+<div class="card">
+<form method="POST" style="padding:20px">
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Tipo de OS</label>
+      <select class="form-control" name="tipo_os" id="tipo_os" onchange="toggleRural()">
+        {% for t in ['Serviço','Venda de Pneu','Recauchutagem Rural','Conserto de Furo'] %}
+        <option value="{{ t }}" {{ 'selected' if os and os.tipo_os==t else '' }}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Data</label>
+      <input class="form-control" type="date" name="data_abert" value="{{ os.data_abert if os else hoje }}">
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Cliente (nome)</label>
+      <input class="form-control" name="cliente_nome" required value="{{ os.cliente_nome if os else '' }}" placeholder="Nome do cliente">
+    </div>
+    <div class="form-group"><label class="form-label">Cliente (cadastro)</label>
+      <select class="form-control" name="cliente_id">
+        <option value="">Selecione se cadastrado...</option>
+        {% for c in cli_list %}
+        <option value="{{ c.id }}" {{ 'selected' if os and os.cliente_id==c.id else '' }}>{{ c.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Placa / Identificação</label>
+      <input class="form-control" name="veiculo_placa" value="{{ os.veiculo_placa if os else '' }}" placeholder="ABC-1234 ou Trator John Deere">
+    </div>
+    <div class="form-group"><label class="form-label">Modelo do Veículo</label>
+      <input class="form-control" name="veiculo_modelo" value="{{ os.veiculo_modelo if os else '' }}" placeholder="Ex: Gol, Trator 5075E">
+    </div>
+  </div>
+  <div class="form-group"><label class="form-label">Serviços Realizados</label>
+    <textarea class="form-control" name="servicos" rows="3" placeholder="Descreva os serviços...">{{ os.servicos if os else '' }}</textarea>
+  </div>
+  <div class="form-row-3">
+    <div class="form-group"><label class="form-label">Medida do Pneu</label>
+      <input class="form-control" name="pneu_medida" value="{{ os.pneu_medida if os else '' }}" placeholder="Ex: 175/70 R13">
+    </div>
+    <div class="form-group"><label class="form-label">Marca</label>
+      <input class="form-control" name="pneu_marca" value="{{ os.pneu_marca if os else '' }}" placeholder="Bridgestone, Michelin...">
+    </div>
+    <div class="form-group"><label class="form-label">Condição</label>
+      <select class="form-control" name="pneu_condicao">
+        {% for c in ['Novo','Usado','Recauchutado','Carcaça'] %}
+        <option value="{{ c }}" {{ 'selected' if os and os.pneu_condicao==c else '' }}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- Seção Montagem -->
+  <div style="background:#f7f8fa;border-radius:8px;padding:14px;margin-bottom:14px">
+    <div style="font-size:13px;font-weight:600;color:#1a2d5a;margin-bottom:10px">🔧 Cobrança de Montagem/Desmontagem</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo de Cobrança</label>
+        <select class="form-control" name="tipo_montagem" id="tipo_montagem" onchange="toggleMontagem()">
+          <option value="cortesia" {{ 'selected' if not os or os.tipo_montagem=='cortesia' else '' }}>🎁 Cortesia (sem custo adicional)</option>
+          <option value="fixo" {{ 'selected' if os and os.tipo_montagem=='fixo' else '' }}>💰 Valor fixo pelas montagens</option>
+          <option value="por_porte" {{ 'selected' if os and os.tipo_montagem=='por_porte' else '' }}>⚖️ Por porte do pneu</option>
+        </select>
+      </div>
+      <div class="form-group" id="div_montagem" style="display:none">
+        <label class="form-label">Valor da(s) Montagem(ns) R$</label>
+        <input class="form-control" type="number" step="0.01" name="valor_montagem" id="valor_montagem" value="{{ os.valor_montagem if os else '0' }}" placeholder="0,00">
+      </div>
+    </div>
+  </div>
+
+  <!-- Seção Rural (só aparece se tipo = Recauchutagem Rural) -->
+  <div id="secao_rural" style="background:#eaf3de;border-radius:8px;padding:14px;margin-bottom:14px;display:none">
+    <div style="font-size:13px;font-weight:600;color:#1a6b10;margin-bottom:10px">🌾 Dados da Recauchutagem Rural</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Carcaça Emprestada</label>
+        <select class="form-control" name="carcaca_id">
+          <option value="">Sem empréstimo de carcaça</option>
+          {% for c in carcacas_disp %}
+          <option value="{{ c.id }}" {{ 'selected' if os and os.carcaca_id==c.id else '' }}>{{ c.medida }} — {{ c.marca or 'sem marca' }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Recauchutadora</label>
+        <input class="form-control" name="recauchutadora" value="{{ os.recauchutadora if os else '' }}" placeholder="Nome da recauchutadora">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Data de Envio</label>
+        <input class="form-control" type="date" name="data_envio" value="{{ os.data_envio if os else '' }}">
+      </div>
+      <div class="form-group"><label class="form-label">Previsão de Retorno</label>
+        <input class="form-control" type="date" name="data_prev_retorno" value="{{ os.data_prev_retorno if os else '' }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-row-3">
+    <div class="form-group"><label class="form-label">Total R$</label>
+      <input class="form-control" type="number" step="0.01" name="total" value="{{ os.total if os else '0' }}">
+    </div>
+    <div class="form-group"><label class="form-label">Desconto R$</label>
+      <input class="form-control" type="number" step="0.01" name="desconto" value="{{ os.desconto if os else '0' }}">
+    </div>
+    <div class="form-group"><label class="form-label">Forma de Pagto</label>
+      <select class="form-control" name="forma_pagto">
+        {% for f in ['Dinheiro','PIX','Cartão Débito','Cartão Crédito','Cheque','A prazo'] %}
+        <option value="{{ f }}" {{ 'selected' if os and os.forma_pagto==f else '' }}>{{ f }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Pago?</label>
+      <select class="form-control" name="pago">
+        <option value="Sim" {{ 'selected' if not os or os.pago=='Sim' else '' }}>Sim</option>
+        <option value="Não" {{ 'selected' if os and os.pago=='Não' else '' }}>Não</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Status da OS</label>
+      <select class="form-control" name="status">
+        {% for s in os_status %}
+        <option value="{{ s }}" {{ 'selected' if os and os.status==s else ('' if os else ('selected' if s=='Aberta' else '')) }}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Técnico</label>
+      <input class="form-control" name="tecnico" value="{{ os.tecnico if os else '' }}">
+    </div>
+    <div class="form-group"><label class="form-label">Observações</label>
+      <input class="form-control" name="obs" value="{{ os.obs if os else '' }}">
+    </div>
+  </div>
+  <div style="display:flex;gap:10px">
+    <button class="btn btn-primary">💾 Salvar OS</button>
+    <a href="/os" class="btn btn-ghost">Cancelar</a>
+  </div>
+</form>
+</div>
+<script>
+function toggleRural(){
+  const t=document.getElementById('tipo_os').value;
+  document.getElementById('secao_rural').style.display=t==='Recauchutagem Rural'?'block':'none';
+}
+function toggleMontagem(){
+  const t=document.getElementById('tipo_montagem').value;
+  document.getElementById('div_montagem').style.display=t!=='cortesia'?'block':'none';
+}
+toggleRural(); toggleMontagem();
+</script>
+{% endblock %}

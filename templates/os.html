@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">📋 Ordens de Serviço</div>
+<div class="card">
+  <div class="card-header">
+    <form method="GET" style="display:flex;gap:8px;flex:1;flex-wrap:wrap">
+      <input class="form-control" name="q" value="{{ q }}" placeholder="Buscar cliente ou placa..." style="max-width:220px">
+      <select class="form-control" name="status" style="max-width:200px" onchange="this.form.submit()">
+        <option value="">Todos os status</option>
+        {% for s in os_status %}<option value="{{ s }}" {{ 'selected' if status==s else '' }}>{{ s }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-ghost btn-sm">Buscar</button>
+    </form>
+    <a href="/os/nova" class="btn btn-primary btn-sm">+ Nova OS</a>
+  </div>
+  <div class="table-responsive"><table>
+    <thead><tr><th>Nº</th><th>Cliente</th><th>Placa</th><th>Pneu</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for o in ordens %}
+    <tr>
+      <td><a href="/os/editar/{{ o.id }}" style="color:#1a6fbd;font-weight:700">#{{ o.id }}</a></td>
+      <td>{{ o.cliente_nome }}</td>
+      <td>{{ o.veiculo_placa or '—' }}</td>
+      <td style="font-size:12px">{{ o.pneu_medida or '—' }} {{ o.pneu_marca or '' }}</td>
+      <td>{{ fmtR(o.total) }}</td>
+      <td><span class="badge badge-{{ o.status|lower|replace(' ','-') }}">{{ o.status }}</span></td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap">
+        <a href="/os/editar/{{ o.id }}" class="btn btn-ghost btn-sm">✏️</a>
+        <a href="/os/imprimir/{{ o.id }}" class="btn btn-ghost btn-sm" target="_blank">🖨️</a>
+        {% if o.status not in ['Concluída','Cancelada'] %}
+        <form method="POST" action="/os/avancar/{{ o.id }}">
+          <button class="btn btn-success btn-sm" title="Avançar status">▶</button>
+        </form>
+        {% endif %}
+        <form method="POST" action="/os/excluir/{{ o.id }}" onsubmit="return confirm('Excluir OS #{{ o.id }}?')">
+          <button class="btn btn-danger btn-sm">🗑️</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="7"><div class="empty"><div class="empty-icon">📋</div><p>Nenhuma OS encontrada</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}
