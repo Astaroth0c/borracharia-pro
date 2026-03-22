@@ -42,7 +42,6 @@ def init_db():
                 usuario          TEXT UNIQUE NOT NULL,
                 senha_hash       TEXT NOT NULL,
                 plano            TEXT DEFAULT 'trial',
-                sistema          TEXT DEFAULT 'borracharia',
                 trial_inicio     TIMESTAMP DEFAULT NOW(),
                 plano_valido_ate TIMESTAMP,
                 criado_em        DATE DEFAULT CURRENT_DATE
@@ -283,7 +282,7 @@ def pneu_status(qtd, qtd_min):
 def get_empresa_status(empresa_id):
     with get_conn() as conn:
         with conn.cursor() as c:
-            c.execute("SELECT * FROM empresas WHERE id=%s AND sistema='borracharia'", (empresa_id,))
+            c.execute("SELECT * FROM empresas WHERE id=%s", (empresa_id,))
             emp = c.fetchone()
     if not emp: return "expirado"
     agora = datetime.datetime.now()
@@ -324,7 +323,7 @@ def login():
         s = request.form.get("senha","").strip()
         with get_conn() as conn:
             with conn.cursor() as c:
-                c.execute("SELECT * FROM empresas WHERE usuario=%s AND senha_hash=%s AND sistema='borracharia'",(u,hash_senha(s)))
+                c.execute("SELECT * FROM empresas WHERE usuario=%s AND senha_hash=%s",(u,hash_senha(s)))
                 emp = c.fetchone()
         if emp:
             session["empresa_id"] = emp["id"]
@@ -349,7 +348,7 @@ def registrar():
         try:
             with get_conn() as conn:
                 with conn.cursor() as c:
-                    c.execute("INSERT INTO empresas (nome,usuario,senha_hash,plano,sistema,trial_inicio) VALUES (%s,%s,%s,'trial','borracharia',NOW())",
+                    c.execute("INSERT INTO empresas (nome,usuario,senha_hash,plano,trial_inicio) VALUES (%s,%s,%s,'trial',NOW())",
                               (nome, usuario, hash_senha(senha)))
             flash("Conta criada! Você tem 1 hora de acesso gratuito. 🔩","success")
             return redirect(url_for("login"))
@@ -966,7 +965,7 @@ def admin():
                 (SELECT COUNT(*) FROM clientes WHERE empresa_id=e.id) as total_clientes,
                 (SELECT COUNT(*) FROM os WHERE empresa_id=e.id) as total_os,
                 (SELECT COALESCE(SUM(valor),0) FROM pagamentos WHERE empresa_id=e.id AND status='approved') as receita
-                FROM empresas e WHERE e.sistema='borracharia' ORDER BY e.criado_em DESC"""); empresas = c.fetchall()
+                FROM empresas e ORDER BY e.criado_em DESC"""); empresas = c.fetchall()
             c.execute("SELECT COALESCE(SUM(valor),0) as t FROM pagamentos WHERE status='approved'"); receita_total = c.fetchone()["t"]
     return render_template("admin.html", empresas=empresas, receita_total=fmtR(receita_total),
         agora=datetime.datetime.now(), fmtR=fmtR, get_empresa_status=get_empresa_status,
