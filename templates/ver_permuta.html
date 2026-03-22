@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">🔄 Permuta #{{ perm.id }}</div>
+<div class="card">
+  <div style="padding:16px">
+    <div class="form-row">
+      <div><label class="form-label">Cliente</label><p><b>{{ perm.cliente_nome }}</b></p></div>
+      <div><label class="form-label">Data</label><p>{{ perm.data.strftime('%d/%m/%Y') if perm.data else '—' }}</p></div>
+      <div><label class="form-label">Serviço</label><p>{{ perm.servico_permutado or '—' }}</p></div>
+    </div>
+    <div class="form-row-3" style="margin-top:14px">
+      <div style="background:#e6f4ec;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:12px;color:#1e8c4e;font-weight:600">VALOR SERVIÇO</div>
+        <div style="font-size:22px;font-weight:700;color:#1e8c4e">{{ fmtR(perm.valor_servico) }}</div>
+      </div>
+      <div style="background:#e8f1fa;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:12px;color:#1a6fbd;font-weight:600">VALOR CARCAÇAS</div>
+        <div style="font-size:22px;font-weight:700;color:#1a6fbd">{{ fmtR(perm.valor_total_carcacas) }}</div>
+      </div>
+      <div style="background:{{ '#e6f4ec' if perm.saldo >= 0 else '#fdecea' }};border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:12px;color:{{ '#1e8c4e' if perm.saldo >= 0 else '#c0392b' }};font-weight:600">SALDO</div>
+        <div style="font-size:22px;font-weight:700;color:{{ '#1e8c4e' if perm.saldo >= 0 else '#c0392b' }}">{{ fmtR(perm.saldo) }}</div>
+        <div style="font-size:11px;color:#718096">{{ 'Cliente paga' if perm.saldo > 0 else 'Você paga' if perm.saldo < 0 else 'Zerado' }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-header"><span class="card-title">🔵 Carcaças Recebidas</span></div>
+  <div class="table-responsive"><table>
+    <thead><tr><th>Medida</th><th>Marca</th><th>Categoria</th><th>Qtd</th><th>Valor Unit.</th><th>Subtotal</th></tr></thead>
+    <tbody>
+    {% for i in itens %}
+    <tr>
+      <td><b>{{ i.medida }}</b></td>
+      <td>{{ i.marca or '—' }}</td>
+      <td>{{ i.categoria }}</td>
+      <td>{{ i.qtd }}</td>
+      <td>{{ fmtR(i.valor_unitario) }}</td>
+      <td><b>{{ fmtR(i.subtotal) }}</b></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+<a href="/permutas" class="btn btn-ghost">← Voltar</a>
+{% endblock %}

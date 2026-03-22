@@ -42,6 +42,7 @@ def init_db():
                 usuario          TEXT UNIQUE NOT NULL,
                 senha_hash       TEXT NOT NULL,
                 plano            TEXT DEFAULT 'trial',
+                sistema          TEXT DEFAULT 'borracharia',
                 trial_inicio     TIMESTAMP DEFAULT NOW(),
                 plano_valido_ate TIMESTAMP,
                 criado_em        DATE DEFAULT CURRENT_DATE
@@ -186,6 +187,70 @@ def init_db():
                 pago       TEXT DEFAULT 'Sim',
                 obs        TEXT
             );
+            CREATE TABLE IF NOT EXISTS proprietarios_carcacas (
+                id                  SERIAL PRIMARY KEY,
+                empresa_id          INT REFERENCES empresas(id) ON DELETE CASCADE,
+                cliente_id          INT REFERENCES clientes(id) ON DELETE CASCADE,
+                recauchutadora      TEXT,
+                percentual_comissao NUMERIC DEFAULT 0,
+                obs                 TEXT,
+                criado_em           DATE DEFAULT CURRENT_DATE
+            );
+            CREATE TABLE IF NOT EXISTS carcacas_proprietario (
+                id              SERIAL PRIMARY KEY,
+                empresa_id      INT REFERENCES empresas(id) ON DELETE CASCADE,
+                proprietario_id INT REFERENCES proprietarios_carcacas(id) ON DELETE CASCADE,
+                numero_serie    TEXT,
+                medida          TEXT NOT NULL,
+                marca           TEXT,
+                aro             TEXT,
+                categoria       TEXT DEFAULT 'Carro',
+                valor_comercial NUMERIC DEFAULT 0,
+                status          TEXT DEFAULT 'disponivel',
+                obs             TEXT,
+                criado_em       DATE DEFAULT CURRENT_DATE
+            );
+            CREATE TABLE IF NOT EXISTS comissoes_recauchutadora (
+                id                  SERIAL PRIMARY KEY,
+                empresa_id          INT REFERENCES empresas(id) ON DELETE CASCADE,
+                proprietario_id     INT REFERENCES proprietarios_carcacas(id) ON DELETE CASCADE,
+                carcaca_prop_id     INT REFERENCES carcacas_proprietario(id) ON DELETE SET NULL,
+                recauchutadora      TEXT,
+                data_envio          DATE DEFAULT CURRENT_DATE,
+                data_prev_retorno   DATE,
+                data_retorno        DATE,
+                data_pagamento      DATE,
+                valor_pneu          NUMERIC DEFAULT 0,
+                comissao_percentual NUMERIC DEFAULT 0,
+                comissao_valor      NUMERIC DEFAULT 0,
+                pago                TEXT DEFAULT 'Nao',
+                obs                 TEXT
+            );
+            CREATE TABLE IF NOT EXISTS permutas (
+                id                     SERIAL PRIMARY KEY,
+                empresa_id             INT REFERENCES empresas(id) ON DELETE CASCADE,
+                cliente_id             INT REFERENCES clientes(id) ON DELETE SET NULL,
+                cliente_nome           TEXT,
+                data                   DATE DEFAULT CURRENT_DATE,
+                servico_permutado      TEXT,
+                valor_servico          NUMERIC DEFAULT 0,
+                total_carcacas         INT DEFAULT 0,
+                valor_total_carcacas   NUMERIC DEFAULT 0,
+                saldo                  NUMERIC DEFAULT 0,
+                obs                    TEXT,
+                criado_em              TIMESTAMP DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS itens_permuta (
+                id             SERIAL PRIMARY KEY,
+                permuta_id     INT REFERENCES permutas(id) ON DELETE CASCADE,
+                empresa_id     INT REFERENCES empresas(id) ON DELETE CASCADE,
+                medida         TEXT NOT NULL,
+                marca          TEXT,
+                categoria      TEXT DEFAULT 'Carro',
+                valor_unitario NUMERIC DEFAULT 0,
+                qtd            INT DEFAULT 1,
+                subtotal       NUMERIC DEFAULT 0
+            );
             CREATE TABLE IF NOT EXISTS pagamentos (
                 id            SERIAL PRIMARY KEY,
                 empresa_id    INT REFERENCES empresas(id) ON DELETE CASCADE,
@@ -218,7 +283,7 @@ def pneu_status(qtd, qtd_min):
 def get_empresa_status(empresa_id):
     with get_conn() as conn:
         with conn.cursor() as c:
-            c.execute("SELECT * FROM empresas WHERE id=%s", (empresa_id,))
+            c.execute("SELECT * FROM empresas WHERE id=%s AND sistema='borracharia'", (empresa_id,))
             emp = c.fetchone()
     if not emp: return "expirado"
     agora = datetime.datetime.now()
@@ -259,7 +324,7 @@ def login():
         s = request.form.get("senha","").strip()
         with get_conn() as conn:
             with conn.cursor() as c:
-                c.execute("SELECT * FROM empresas WHERE usuario=%s AND senha_hash=%s",(u,hash_senha(s)))
+                c.execute("SELECT * FROM empresas WHERE usuario=%s AND senha_hash=%s AND sistema='borracharia'",(u,hash_senha(s)))
                 emp = c.fetchone()
         if emp:
             session["empresa_id"] = emp["id"]
@@ -284,7 +349,7 @@ def registrar():
         try:
             with get_conn() as conn:
                 with conn.cursor() as c:
-                    c.execute("INSERT INTO empresas (nome,usuario,senha_hash,plano,trial_inicio) VALUES (%s,%s,%s,'trial',NOW())",
+                    c.execute("INSERT INTO empresas (nome,usuario,senha_hash,plano,sistema,trial_inicio) VALUES (%s,%s,%s,'trial','borracharia',NOW())",
                               (nome, usuario, hash_senha(senha)))
             flash("Conta criada! Você tem 1 hora de acesso gratuito. 🔩","success")
             return redirect(url_for("login"))
@@ -901,7 +966,7 @@ def admin():
                 (SELECT COUNT(*) FROM clientes WHERE empresa_id=e.id) as total_clientes,
                 (SELECT COUNT(*) FROM os WHERE empresa_id=e.id) as total_os,
                 (SELECT COALESCE(SUM(valor),0) FROM pagamentos WHERE empresa_id=e.id AND status='approved') as receita
-                FROM empresas e ORDER BY e.criado_em DESC"""); empresas = c.fetchall()
+                FROM empresas e WHERE e.sistema='borracharia' ORDER BY e.criado_em DESC"""); empresas = c.fetchall()
             c.execute("SELECT COALESCE(SUM(valor),0) as t FROM pagamentos WHERE status='approved'"); receita_total = c.fetchone()["t"]
     return render_template("admin.html", empresas=empresas, receita_total=fmtR(receita_total),
         agora=datetime.datetime.now(), fmtR=fmtR, get_empresa_status=get_empresa_status,
@@ -924,6 +989,242 @@ def admin_bloquear(eid):
             c.execute("UPDATE empresas SET plano='expirado',plano_valido_ate=NOW() WHERE id=%s",(eid,))
     flash(f"Empresa #{eid} bloqueada!","info")
     return redirect(url_for("admin", token=request.args.get("token")))
+
+# ─────────────────────────────────────────────────────────
+# PROPRIETÁRIOS DE CARCAÇAS + COMISSÃO RECAUCHUTADORA
+# ─────────────────────────────────────────────────────────
+@app.route("/proprietarios")
+@login_required
+def proprietarios():
+    eid = session["empresa_id"]
+    q = request.args.get("q","")
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            sql = """SELECT p.*, c.nome as cliente_nome, c.telefone,
+                     (SELECT COUNT(*) FROM carcacas_proprietario cp WHERE cp.proprietario_id=p.id AND cp.status='disponivel') as carcacas_disponiveis,
+                     (SELECT COUNT(*) FROM carcacas_proprietario cp WHERE cp.proprietario_id=p.id AND cp.status='em_recauchutagem') as em_recauchutagem,
+                     (SELECT COALESCE(SUM(comissao_valor),0) FROM comissoes_recauchutadora cr WHERE cr.proprietario_id=p.id AND cr.pago='Não') as comissao_pendente
+                     FROM proprietarios_carcacas p JOIN clientes c ON c.id=p.cliente_id
+                     WHERE p.empresa_id=%s"""
+            params = [eid]
+            if q:
+                sql += " AND (LOWER(c.nome) LIKE %s OR LOWER(p.recauchutadora) LIKE %s)"
+                params += [f"%{q.lower()}%", f"%{q.lower()}%"]
+            sql += " ORDER BY c.nome"
+            c.execute(sql, params)
+            rows = c.fetchall()
+    return render_template("proprietarios.html", proprietarios=rows, q=q, fmtR=fmtR)
+
+@app.route("/proprietarios/novo", methods=["GET","POST"])
+@login_required
+def proprietario_novo():
+    eid = session["empresa_id"]
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("SELECT id,nome FROM clientes WHERE empresa_id=%s ORDER BY nome",(eid,))
+            cli_list = c.fetchall()
+    if request.method == "POST":
+        f = request.form
+        with get_conn() as conn:
+            with conn.cursor() as c:
+                c.execute("""INSERT INTO proprietarios_carcacas
+                    (empresa_id,cliente_id,recauchutadora,percentual_comissao,obs)
+                    VALUES (%s,%s,%s,%s,%s)""",
+                    (eid, f["cliente_id"], f.get("recauchutadora"),
+                     float(f.get("percentual_comissao") or 0), f.get("obs")))
+        flash("Proprietário cadastrado! ✔","success")
+        return redirect(url_for("proprietarios"))
+    return render_template("form_proprietario.html", cli_list=cli_list, prop=None, titulo="Novo Proprietário de Carcaças")
+
+@app.route("/proprietarios/editar/<int:pid>", methods=["GET","POST"])
+@login_required
+def proprietario_editar(pid):
+    eid = session["empresa_id"]
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("SELECT * FROM proprietarios_carcacas WHERE id=%s AND empresa_id=%s",(pid,eid))
+            prop = c.fetchone()
+            c.execute("SELECT id,nome FROM clientes WHERE empresa_id=%s ORDER BY nome",(eid,))
+            cli_list = c.fetchall()
+            c.execute("""SELECT cp.*, 
+                         (SELECT COUNT(*) FROM comissoes_recauchutadora cr WHERE cr.carcaca_prop_id=cp.id) as total_envios
+                         FROM carcacas_proprietario cp WHERE cp.proprietario_id=%s ORDER BY cp.numero_serie""",(pid,))
+            carcacas = c.fetchall()
+            c.execute("SELECT * FROM comissoes_recauchutadora WHERE proprietario_id=%s ORDER BY data_envio DESC",(pid,))
+            comissoes = c.fetchall()
+    if not prop: return redirect(url_for("proprietarios"))
+    if request.method == "POST":
+        f = request.form
+        with get_conn() as conn:
+            with conn.cursor() as c:
+                c.execute("UPDATE proprietarios_carcacas SET cliente_id=%s,recauchutadora=%s,percentual_comissao=%s,obs=%s WHERE id=%s AND empresa_id=%s",
+                    (f["cliente_id"],f.get("recauchutadora"),float(f.get("percentual_comissao") or 0),f.get("obs"),pid,eid))
+        flash("Proprietário atualizado! ✔","success")
+        return redirect(url_for("proprietarios"))
+    return render_template("form_proprietario.html", cli_list=cli_list, prop=prop,
+        carcacas=carcacas, comissoes=comissoes, titulo="Editar Proprietário", fmtR=fmtR,
+        hoje=datetime.date.today())
+
+@app.route("/proprietarios/carcaca/nova/<int:prop_id>", methods=["POST"])
+@login_required
+def carcaca_prop_nova(prop_id):
+    eid = session["empresa_id"]
+    f = request.form
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("""INSERT INTO carcacas_proprietario
+                (empresa_id,proprietario_id,numero_serie,medida,marca,aro,categoria,valor_comercial,status,obs)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,'disponivel',%s)""",
+                (eid, prop_id, f.get("numero_serie"), f["medida"], f.get("marca"),
+                 f.get("aro"), f.get("categoria","Carro"),
+                 float(f.get("valor_comercial") or 0), f.get("obs")))
+    flash("Carcaça do proprietário cadastrada! ✔","success")
+    return redirect(url_for("proprietario_editar", pid=prop_id))
+
+@app.route("/proprietarios/enviar/<int:prop_id>/<int:carc_id>", methods=["POST"])
+@login_required
+def enviar_recauchutagem(prop_id, carc_id):
+    eid = session["empresa_id"]
+    f = request.form
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("SELECT * FROM carcacas_proprietario WHERE id=%s",(carc_id,))
+            carc = c.fetchone()
+            c.execute("SELECT * FROM proprietarios_carcacas WHERE id=%s",(prop_id,))
+            prop = c.fetchone()
+            if carc and prop:
+                valor_pneu = float(f.get("valor_pneu") or 0)
+                comissao = valor_pneu * (float(prop["percentual_comissao"] or 0) / 100)
+                c.execute("""INSERT INTO comissoes_recauchutadora
+                    (empresa_id,proprietario_id,carcaca_prop_id,recauchutadora,
+                     data_envio,data_prev_retorno,valor_pneu,comissao_percentual,comissao_valor,pago,obs)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'Não',%s)""",
+                    (eid, prop_id, carc_id, prop["recauchutadora"],
+                     f.get("data_envio") or datetime.date.today(),
+                     f.get("data_prev_retorno") or None,
+                     valor_pneu, prop["percentual_comissao"], comissao, f.get("obs")))
+                c.execute("UPDATE carcacas_proprietario SET status='em_recauchutagem' WHERE id=%s",(carc_id,))
+    flash("Pneu enviado para recauchutagem! ✔","success")
+    return redirect(url_for("proprietario_editar", pid=prop_id))
+
+@app.route("/proprietarios/retornou/<int:com_id>", methods=["POST"])
+@login_required
+def pneu_retornou(com_id):
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("SELECT * FROM comissoes_recauchutadora WHERE id=%s",(com_id,))
+            com = c.fetchone()
+            if com:
+                c.execute("UPDATE carcacas_proprietario SET status='disponivel' WHERE id=%s",(com["carcaca_prop_id"],))
+                c.execute("UPDATE comissoes_recauchutadora SET data_retorno=CURRENT_DATE WHERE id=%s",(com_id,))
+    flash("Pneu retornou da recauchutagem! ✔","success")
+    return redirect(url_for("proprietario_editar", pid=com["proprietario_id"] if com else 0))
+
+@app.route("/proprietarios/pagar_comissao/<int:com_id>", methods=["POST"])
+@login_required
+def pagar_comissao(com_id):
+    eid = session["empresa_id"]
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("SELECT * FROM comissoes_recauchutadora WHERE id=%s",(com_id,))
+            com = c.fetchone()
+            if com:
+                c.execute("UPDATE comissoes_recauchutadora SET pago='Sim', data_pagamento=CURRENT_DATE WHERE id=%s",(com_id,))
+                c.execute("""INSERT INTO financeiro (empresa_id,data,tipo,categoria,descricao,valor,forma_pagto,pago)
+                             VALUES (%s,CURRENT_DATE,'Saída','Comissão',%s,%s,'Dinheiro','Sim')""",
+                          (eid, f"Comissão recauchutagem — {com['recauchutadora']}", com["comissao_valor"]))
+    flash("Comissão paga e registrada no financeiro! ✔","success")
+    return redirect(url_for("proprietario_editar", pid=com["proprietario_id"] if com else 0))
+
+# ─────────────────────────────────────────────────────────
+# PERMUTA DE CARCAÇAS
+# ─────────────────────────────────────────────────────────
+@app.route("/permutas")
+@login_required
+def permutas():
+    eid = session["empresa_id"]
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("""SELECT p.*, 
+                         (SELECT COUNT(*) FROM itens_permuta ip WHERE ip.permuta_id=p.id) as total_carcacas
+                         FROM permutas p WHERE p.empresa_id=%s ORDER BY p.data DESC""", (eid,))
+            rows = c.fetchall()
+    return render_template("permutas.html", permutas=rows, fmtR=fmtR)
+
+@app.route("/permutas/nova", methods=["GET","POST"])
+@login_required
+def permuta_nova():
+    eid = session["empresa_id"]
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("SELECT id,nome FROM clientes WHERE empresa_id=%s ORDER BY nome",(eid,))
+            cli_list = c.fetchall()
+    if request.method == "POST":
+        f = request.form
+        medidas = request.form.getlist("medida[]")
+        marcas = request.form.getlist("marca[]")
+        categorias = request.form.getlist("categoria[]")
+        valores = request.form.getlist("valor_unitario[]")
+        qtds = request.form.getlist("qtd[]")
+
+        total_carcacas = sum(int(q or 1) for q in qtds)
+        valor_total = sum(float(v or 0) * int(q or 1) for v,q in zip(valores,qtds))
+
+        with get_conn() as conn:
+            with conn.cursor() as c:
+                c.execute("""INSERT INTO permutas
+                    (empresa_id,cliente_id,cliente_nome,data,servico_permutado,
+                     valor_servico,total_carcacas,valor_total_carcacas,saldo,obs)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
+                    (eid, f.get("cliente_id") or None, f["cliente_nome"],
+                     f.get("data") or datetime.date.today(),
+                     f.get("servico_permutado"), float(f.get("valor_servico") or 0),
+                     total_carcacas, valor_total,
+                     float(f.get("valor_servico") or 0) - valor_total,
+                     f.get("obs")))
+                perm_id = c.fetchone()["id"]
+
+                for med,mar,cat,val,qtd in zip(medidas,marcas,categorias,valores,qtds):
+                    if med:
+                        q = int(qtd or 1)
+                        v = float(val or 0)
+                        c.execute("""INSERT INTO itens_permuta
+                            (permuta_id,empresa_id,medida,marca,categoria,valor_unitario,qtd,subtotal)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+                            (perm_id,eid,med,mar,cat,v,q,v*q))
+                        # Adiciona as carcaças recebidas ao estoque
+                        for _ in range(q):
+                            c.execute("""INSERT INTO carcacas (empresa_id,medida,marca,status,obs)
+                                         VALUES (%s,%s,%s,'disponivel','Recebida por permuta')""",
+                                      (eid,med,mar))
+
+                # Registra no financeiro se há diferença a pagar
+                saldo = float(f.get("valor_servico") or 0) - valor_total
+                if saldo > 0:
+                    c.execute("""INSERT INTO financeiro (empresa_id,data,tipo,categoria,descricao,valor,forma_pagto,pago)
+                                 VALUES (%s,CURRENT_DATE,'Entrada','Permuta',%s,%s,'Permuta','Sim')""",
+                              (eid, f"Permuta — {f['cliente_nome']} — saldo a receber", saldo))
+                elif saldo < 0:
+                    c.execute("""INSERT INTO financeiro (empresa_id,data,tipo,categoria,descricao,valor,forma_pagto,pago)
+                                 VALUES (%s,CURRENT_DATE,'Saída','Permuta',%s,%s,'Permuta','Sim')""",
+                              (eid, f"Permuta — {f['cliente_nome']} — saldo a pagar", abs(saldo)))
+
+        flash("Permuta registrada! Carcaças adicionadas ao estoque! ✔","success")
+        return redirect(url_for("permutas"))
+    return render_template("form_permuta.html", cli_list=cli_list, hoje=datetime.date.today())
+
+@app.route("/permutas/ver/<int:pid>")
+@login_required
+def permuta_ver(pid):
+    eid = session["empresa_id"]
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("SELECT * FROM permutas WHERE id=%s AND empresa_id=%s",(pid,eid))
+            perm = c.fetchone()
+            c.execute("SELECT * FROM itens_permuta WHERE permuta_id=%s",(pid,))
+            itens = c.fetchall()
+    if not perm: return redirect(url_for("permutas"))
+    return render_template("ver_permuta.html", perm=perm, itens=itens, fmtR=fmtR)
 
 # ─────────────────────────────────────────────────────────
 # INICIALIZAÇÃO

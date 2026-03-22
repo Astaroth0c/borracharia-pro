@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">{{ titulo }}</div>
+<div class="card">
+  <form method="POST" action="{{ '/proprietarios/editar/'+prop.id|string if prop else '/proprietarios/novo' }}" style="padding:20px">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cliente *</label>
+        <select class="form-control" name="cliente_id" required>
+          <option value="">Selecione o cliente...</option>
+          {% for c in cli_list %}
+          <option value="{{ c.id }}" {{ 'selected' if prop and prop.cliente_id==c.id else '' }}>{{ c.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Recauchutadora parceira</label>
+        <input class="form-control" name="recauchutadora" value="{{ prop.recauchutadora if prop else '' }}" placeholder="Nome da recauchutadora">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Percentual de Comissão (%)</label>
+        <input class="form-control" type="number" step="0.1" name="percentual_comissao" value="{{ prop.percentual_comissao if prop else '0' }}" placeholder="Ex: 10">
+      </div>
+      <div class="form-group"><label class="form-label">Observações</label>
+        <input class="form-control" name="obs" value="{{ prop.obs if prop else '' }}">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary">💾 Salvar</button>
+      <a href="/proprietarios" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+{% if prop %}
+<!-- Carcaças do proprietário -->
+<div class="card">
+  <div class="card-header"><span class="card-title">🔵 Carcaças do Proprietário</span></div>
+  <div style="padding:16px">
+    <form method="POST" action="/proprietarios/carcaca/nova/{{ prop.id }}" style="background:#f7f8fa;border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;color:#1a2d5a;margin-bottom:10px">+ Adicionar Carcaça</div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label">Nº Série</label><input class="form-control" name="numero_serie" placeholder="Ex: CAR-001"></div>
+        <div class="form-group"><label class="form-label">Medida *</label><input class="form-control" name="medida" required placeholder="Ex: 295/80 R22.5"></div>
+        <div class="form-group"><label class="form-label">Marca</label><input class="form-control" name="marca"></div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label">Aro</label><input class="form-control" name="aro" placeholder="Ex: 22.5"></div>
+        <div class="form-group"><label class="form-label">Categoria</label>
+          <select class="form-control" name="categoria">
+            {% for c in ['Carro','Caminhão','Agrícola - Trator','Agrícola - Colheitadeira','Moto','Outro'] %}
+            <option>{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Valor Comercial R$</label><input class="form-control" type="number" step="0.01" name="valor_comercial" value="0"></div>
+      </div>
+      <button class="btn btn-success btn-sm">+ Adicionar</button>
+    </form>
+    <div class="table-responsive"><table>
+      <thead><tr><th>Nº Série</th><th>Medida</th><th>Marca</th><th>Categoria</th><th>Valor</th><th>Status</th><th>Enviar</th></tr></thead>
+      <tbody>
+      {% for c in carcacas %}
+      <tr>
+        <td>{{ c.numero_serie or '—' }}</td>
+        <td><b>{{ c.medida }}</b></td>
+        <td>{{ c.marca or '—' }}</td>
+        <td>{{ c.categoria }}</td>
+        <td>{{ fmtR(c.valor_comercial) }}</td>
+        <td><span class="badge {{ 'badge-ok' if c.status=='disponivel' else 'badge-em-recauchutagem' }}">{{ c.status }}</span></td>
+        <td>
+          {% if c.status == 'disponivel' %}
+          <button class="btn btn-warning btn-sm" onclick="toggleEnvio({{ c.id }})">Enviar p/ Recauch.</button>
+          <div id="envio_{{ c.id }}" style="display:none;margin-top:8px;background:#fff3e0;border-radius:6px;padding:10px">
+            <form method="POST" action="/proprietarios/enviar/{{ prop.id }}/{{ c.id }}">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Data Envio</label><input class="form-control" type="date" name="data_envio" value="{{ hoje }}"></div>
+                <div class="form-group"><label class="form-label">Prev. Retorno</label><input class="form-control" type="date" name="data_prev_retorno"></div>
+              </div>
+              <div class="form-group"><label class="form-label">Valor do pneu recauchutado R$</label><input class="form-control" type="number" step="0.01" name="valor_pneu" required placeholder="Valor cobrado pela recauchutadora"></div>
+              <button class="btn btn-warning btn-sm">✅ Confirmar envio</button>
+            </form>
+          </div>
+          {% else %}
+          <span style="font-size:12px;color:#718096">Em recauchutagem</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7"><div class="empty"><p>Nenhuma carcaça cadastrada</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- Comissões -->
+<div class="card">
+  <div class="card-header"><span class="card-title">💰 Comissões da Recauchutadora</span></div>
+  <div class="table-responsive"><table>
+    <thead><tr><th>Data Envio</th><th>Medida</th><th>Valor Pneu</th><th>Comissão %</th><th>Comissão R$</th><th>Retornou</th><th>Pago</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for c in comissoes %}
+    <tr>
+      <td>{{ c.data_envio.strftime('%d/%m/%Y') if c.data_envio else '—' }}</td>
+      <td>{{ c.recauchutadora or '—' }}</td>
+      <td>{{ fmtR(c.valor_pneu) }}</td>
+      <td>{{ c.comissao_percentual }}%</td>
+      <td><b style="color:#1e8c4e">{{ fmtR(c.comissao_valor) }}</b></td>
+      <td>
+        {% if c.data_retorno %}
+          {{ c.data_retorno.strftime('%d/%m/%Y') }}
+        {% else %}
+          <form method="POST" action="/proprietarios/retornou/{{ c.id }}">
+            <button class="btn btn-success btn-sm">✅ Retornou</button>
+          </form>
+        {% endif %}
+      </td>
+      <td>
+        {% if c.pago == 'Sim' %}
+          <span class="badge badge-ok">✅ Pago</span>
+        {% else %}
+          <form method="POST" action="/proprietarios/pagar_comissao/{{ c.id }}">
+            <button class="btn btn-primary btn-sm">💰 Pagar</button>
+          </form>
+        {% endif %}
+      </td>
+      <td style="font-size:11px;color:#718096">{{ c.data_pagamento.strftime('%d/%m/%Y') if c.data_pagamento else '' }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8"><div class="empty"><p>Nenhuma comissão registrada</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endif %}
+<script>
+var hoje = "{{ hoje if hoje is defined else '' }}";
+function toggleEnvio(id){
+  var d=document.getElementById('envio_'+id);
+  d.style.display=d.style.display==='none'?'block':'none';
+}
+</script>
+{% endblock %}

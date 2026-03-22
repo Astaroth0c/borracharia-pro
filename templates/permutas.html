@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-title">🔄 Permutas de Carcaças</div>
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Histórico de Permutas</span>
+    <a href="/permutas/nova" class="btn btn-primary btn-sm">+ Nova Permuta</a>
+  </div>
+  <div class="table-responsive"><table>
+    <thead><tr><th>Nº</th><th>Data</th><th>Cliente</th><th>Serviço Permutado</th><th>Valor Serviço</th><th>Carcaças</th><th>Valor Carcaças</th><th>Saldo</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for p in permutas %}
+    <tr>
+      <td><b style="color:#1a6fbd">#{{ p.id }}</b></td>
+      <td>{{ p.data.strftime('%d/%m/%Y') if p.data else '—' }}</td>
+      <td><b>{{ p.cliente_nome }}</b></td>
+      <td>{{ p.servico_permutado or '—' }}</td>
+      <td>{{ fmtR(p.valor_servico) }}</td>
+      <td><span class="badge badge-aberta">{{ p.total_carcacas }} pneu(s)</span></td>
+      <td>{{ fmtR(p.valor_total_carcacas) }}</td>
+      <td>
+        {% if p.saldo > 0 %}
+          <b style="color:#1e8c4e">+ {{ fmtR(p.saldo) }}</b>
+        {% elif p.saldo < 0 %}
+          <b style="color:#c0392b">{{ fmtR(p.saldo) }}</b>
+        {% else %}
+          <span style="color:#718096">Zerado</span>
+        {% endif %}
+      </td>
+      <td><a href="/permutas/ver/{{ p.id }}" class="btn btn-ghost btn-sm">👁️ Ver</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="9"><div class="empty"><div class="empty-icon">🔄</div><p>Nenhuma permuta registrada</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}
