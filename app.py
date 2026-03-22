@@ -1225,6 +1225,81 @@ def permuta_ver(pid):
     if not perm: return redirect(url_for("permutas"))
     return render_template("ver_permuta.html", perm=perm, itens=itens, fmtR=fmtR)
 
+
+# ─────────────────────────────────────────────────────────
+# API — Orange Tech Admin Hub
+# ─────────────────────────────────────────────────────────
+API_TOKEN = os.environ.get("API_TOKEN", "orangetech_api_2024")
+
+def api_auth():
+    token = request.headers.get("X-API-Token","")
+    return token == API_TOKEN
+
+@app.route("/api/stats")
+def api_stats():
+    if not api_auth(): return jsonify({"erro":"Não autorizado"}), 401
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as c:
+                c.execute("SELECT COUNT(*) as n FROM empresas"); total = c.fetchone()["n"]
+                c.execute("SELECT COUNT(*) as n FROM empresas WHERE plano='ativo' AND plano_valido_ate > NOW()"); ativas = c.fetchone()["n"]
+                c.execute("SELECT COUNT(*) as n FROM empresas WHERE plano='trial' AND trial_inicio + INTERVAL '1 hour' > NOW()"); trial = c.fetchone()["n"]
+                expiradas = total - ativas - trial
+                c.execute("SELECT COALESCE(SUM(valor),0) as t FROM pagamentos WHERE status='approved' AND EXTRACT(MONTH FROM criado_em)=EXTRACT(MONTH FROM NOW())"); receita_mes = c.fetchone()["t"]
+                c.execute("SELECT COALESCE(SUM(valor),0) as t FROM pagamentos WHERE status='approved'"); receita_total = c.fetchone()["t"]
+                c.execute("SELECT COUNT(*) as n FROM empresas WHERE EXTRACT(MONTH FROM criado_em)=EXTRACT(MONTH FROM NOW())"); novos_mes = c.fetchone()["n"]
+                c.execute("""SELECT TO_CHAR(criado_em,'Mon') as mes, COALESCE(SUM(valor),0) as valor
+                             FROM pagamentos WHERE status='approved'
+                             GROUP BY TO_CHAR(criado_em,'Mon'), EXTRACT(MONTH FROM criado_em), EXTRACT(YEAR FROM criado_em)
+                             ORDER BY EXTRACT(YEAR FROM criado_em), EXTRACT(MONTH FROM criado_em) DESC LIMIT 6""")
+                historico = list(reversed(c.fetchall()))
+        return jsonify({
+            "total_empresas": total, "ativas": ativas, "trial": trial,
+            "expiradas": max(0,expiradas), "receita_mes": float(receita_mes),
+            "receita_total": float(receita_total), "novos_mes": novos_mes,
+            "historico_receita": [{"mes": h["mes"], "valor": float(h["valor"])} for h in historico]
+        })
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route("/api/empresas")
+def api_empresas():
+    if not api_auth(): return jsonify({"erro":"Não autorizado"}), 401
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as c:
+                c.execute("SELECT id,nome,usuario,plano,plano_valido_ate,trial_inicio,criado_em FROM empresas ORDER BY criado_em DESC")
+                rows = c.fetchall()
+        empresas = []
+        for e in rows:
+            empresas.append({
+                "id": e["id"], "nome": e["nome"], "usuario": e["usuario"],
+                "plano": e["plano"],
+                "plano_valido_ate": e["plano_valido_ate"].isoformat() if e["plano_valido_ate"] else None,
+                "trial_inicio": e["trial_inicio"].isoformat() if e["trial_inicio"] else None,
+                "criado_em": e["criado_em"].isoformat() if e["criado_em"] else None
+            })
+        return jsonify({"empresas": empresas})
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route("/api/admin/liberar/<int:eid>", methods=["POST"])
+def api_admin_liberar(eid):
+    if not api_auth(): return jsonify({"erro":"Não autorizado"}), 401
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("UPDATE empresas SET plano='ativo',plano_valido_ate=NOW()+INTERVAL '30 days' WHERE id=%s",(eid,))
+    return jsonify({"ok": True})
+
+@app.route("/api/admin/bloquear/<int:eid>", methods=["POST"])
+def api_admin_bloquear(eid):
+    if not api_auth(): return jsonify({"erro":"Não autorizado"}), 401
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("UPDATE empresas SET plano='expirado',plano_valido_ate=NOW() WHERE id=%s",(eid,))
+    return jsonify({"ok": True})
+
+
 # ─────────────────────────────────────────────────────────
 # INICIALIZAÇÃO
 # ─────────────────────────────────────────────────────────
