@@ -1291,6 +1291,20 @@ def api_admin_liberar(eid):
             c.execute("UPDATE empresas SET plano='ativo',plano_valido_ate=NOW()+INTERVAL '30 days' WHERE id=%s",(eid,))
     return jsonify({"ok": True})
 
+
+@app.route("/api/admin/trial/<int:eid>", methods=["POST"])
+def api_admin_trial(eid):
+    if not api_auth(): return jsonify({"erro":"Não autorizado"}), 401
+    horas = request.json.get("horas", 1) if request.json else 1
+    with get_conn() as conn:
+        with conn.cursor() as c:
+            c.execute("""UPDATE empresas SET 
+                plano='trial',
+                trial_inicio=NOW(),
+                plano_valido_ate=NOW() + INTERVAL '1 second' * %s
+                WHERE id=%s""", (int(horas * 3600), eid))
+    return jsonify({"ok": True, "horas": horas})
+
 @app.route("/api/admin/bloquear/<int:eid>", methods=["POST"])
 def api_admin_bloquear(eid):
     if not api_auth(): return jsonify({"erro":"Não autorizado"}), 401
